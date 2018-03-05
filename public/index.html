@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<!--  «Публичная библиотека». Разработать веб-приложение, позволяющее 
+контролировать процесс выдачи книг в библиотеке. 
+Работа пользователя начинается со страницы, на которой он может искать 
+нужные ему книги в библиотечном фонде. Каждая книга в нашей библиотеке 
+представлена следующими реквизитами:
+· Код ISBN
+· Список авторов (автор представляется фамилией и инициалами)
+· Код издания
+· Издательство
+· Наименование книги
+Данные о библиотечном фонде должны загружаться в систему из файлов формата 
+JSON (формат разработать самостоятельно)
+Одной и той же книги в библиотеке может быть несколько экземпляров. Пользователь
+должен иметь возможность осуществить поиск книги по любому из этих реквизитов. В
+ случае, если поиск был успешен, система выводит список всех книг, удовлетворяющих
+ критерию поиска с указанием текущего количества экземпляров, которое ест в библиотеке.
+ Если все экземпляры данной книги на руках, будет выведена строка с указанием 0 в 
+ качестве количества доступных экземпляров. Пользователь выбирает нужную ему книгу 
+ (считаем, что пользователь не может взять более одной книги за раз) и получает ее 
+ (количество доступных экземпляров при этом уменьшается). При этом в системе 
+ фиксируется дата взятия книги пользователем и дата, когда пользователь должен книгу
+ вернуть (в нашей библиотеке мы выдаем книги максимум на 20 календарных дней). 
+ В момент, когда пользователь возвращает книгу, он заходит на соответствующую страницу
+ приложения и выбирает среди списка несданных книг ту книгу, которую он сдает. 
+ В этот момент количество доступных экземпляров увеличивается.
+
+Дополнительно: добавить возможность авторизации пользователей и наличие «личного кабинета»,
+ в котором читатель видит свои книги, которые находятся у него на руках, и при сдаче выбирает их.
+ Кроме того, на первой странице системы выводится «антирейтинг» читателей – тех, кто чаще всего невовремя сдает книги  -->
+
+
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Public Library</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+</head>
+<body>
+    <h2>Books List</h2>
+    <form name="bookForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="isbn">ISBN:</label>
+            <input class="form-control" name="isbn" />
+			<a id ="findISBN" class ="btn btn-sm btn-primary" >Find</a>
+        </div>
+        <div class="form-group">
+            <label for="author">Author:</label>
+            <input class="form-control" name="author" />
+			<a id ="findAuth" class ="btn btn-sm btn-primary" >Find</a>
+        </div>
+		<div class="form-group">
+            <label for="init">Initials:</label>
+            <input class="form-control" name="init" />
+			<a id ="findInit" class ="btn btn-sm btn-primary" >Find</a>
+		</div>
+		<div class="form-group">
+            <label for="edcode">Ed Code:</label>
+            <input class="form-control" name="edcode" />
+			<a id ="findEdcode" class ="btn btn-sm btn-primary" >Find</a>
+        </div>
+		<div class="form-group">
+            <label for="editor">Editor:</label>
+            <input class="form-control" name="editor" />
+			<a id ="findEditor" class ="btn btn-sm btn-primary" >Find</a>
+        </div>
+		<div class="form-group">
+            <label for="name">Name:</label>
+            <input class="form-control" name="name" />
+			<a id ="findName" class ="btn btn-sm btn-primary" >Find</a>
+        </div>
+		<div class="form-group">
+            <label for="num">Number:</label>
+            <input class="form-control" name="num" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+			<a id ="load" class ="btn btn-sm btn-primary" > Load Books</a>
+            <a id="reset" class="btn btn-sm btn-primary">Reset</a>
+			<a id="clear" class="btn btn-sm btn-primary">Clear Table</a>
+        </div>
+    </form>
+    <table id = "bookTable" class="table table-condensed table-striped table-bordered">
+        <thead><tr><th>Id</th><th>ISBN</th><th>Author</th><th>Initials</th><th>EdCode</th><th>Editor</th><th>Name</th><th>Num</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+  <!-- isbn, auth, init, edcode, editor, name -->
+    <script>
+        //get all books
+        function GetBooks() {
+            $.ajax({
+                url: "/api/books",
+                type: "GET",
+                contentType: "application/json",
+                success: function (books) {
+					var rows = "";
+                    $.each(books, function (index, book) {
+                        rows += row(book);
+                    })
+                    $("table tbody").append(rows);
+                 }
+            });
+        }
+        //Get one book
+        function GetBook(id) {
+            $.ajax({
+                url: "/api/books/"+id,
+                type: "GET",
+                contentType: "application/json",
+                success: function (book) {
+                    var form = document.forms["bookForm"];
+                    form.elements["id"].value = book._id;
+                    form.elements["isbn"].value = book.isbn;
+                    form.elements["author"].value = book.auth;
+					form.elements["init"].value = book.init;
+					form.elements["edcode"].value = book.edcode;
+					form.elements["editor"].value = book.editor;
+					form.elements["name"].value = book.name;
+					form.elements["num"].value = book.num;
+                }
+            });
+        }
+        //Add a book
+        function CreateBook(bookISBN, bookAuth, bookInit, bookEdcode, bookEditor, bookName, bookNum) {
+            $.ajax({
+                url: "api/books",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    isbn: bookISBN,
+                    auth: bookAuth,
+					init: bookInit,
+					edcode: bookEdcode,
+					editor: bookEditor,
+					name: bookName,
+					num : bookNum
+                }),
+                success: function (book) {
+                    reset();
+                    //$("table tbody").append(row(book));
+                }
+            })
+        }
+        //Edit Book
+        function EditBook(bookId, bookISBN, bookAuth, bookInit, bookEdcode, bookEditor, bookName, bookNum) {
+            $.ajax({
+                url: "api/books",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+					id: bookId,
+                    isbn: bookISBN,
+                    auth: bookAuth,
+					init: bookInit,
+					edcode: bookEdcode,
+					editor: bookEditor,
+					name: bookName,
+					num : bookNum
+                }),
+                success: function (book) {
+                    reset();
+                    console.log(book);
+                   // $("tr[data-rowid='" + book._id + "']").replaceWith(row(book));
+                }
+            })
+        }
+		//clear books table
+		$("#clear").click(function (e) {
+		e.preventDefault();
+			while(document.getElementById("bookTable").rows.length > 1) {
+				document.getElementById("bookTable").deleteRow(document.getElementById("bookTable").rows.length - 1);
+			}
+		})
+
+		//load table with books
+		$("#load").click(function (e) {
+			e.preventDefault();
+			while(document.getElementById("bookTable").rows.length > 1) {
+				document.getElementById("bookTable").deleteRow(document.getElementById("bookTable").rows.length - 1);
+			}
+			//load books
+			GetBooks();
+		})
+        //reset form
+        function reset() {
+            var form = document.forms["bookForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+  
+        //delete book
+        function DeleteBook(id) {
+            $.ajax({
+                url: "api/books/"+id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (book) {
+                    console.log(book);
+                    $("tr[data-rowid='" + book._id + "']").remove();
+                }
+            })
+        }
+        //create row for a table
+        var row = function (book) {
+            return "<tr data-rowid='" + book._id + "'><td>" + book._id + "</td>" +
+                   "<td>" + book.isbn + "</td> <td>" + book.auth + "</td>" +
+				   "<td>" + book.init + "</td>" + "<td>" + book.edcode + "</td>" +
+				   "<td>" + book.editor + "</td>" + "<td>" + book.name + "</td>" +
+				   "<td>" + book.num + "</td>" +
+                   "<td><a class='editLink' data-id='" + book._id + "'>Edit</a> | " +
+                    "<a class='removeLink' data-id='" + book._id + "'>Remove</a></td></tr>";
+        }
+        //reset form values
+        $("#reset").click(function (e) {
+  
+            e.preventDefault();
+            reset();
+        })
+  
+        //submit form
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var isbn = +this.elements["isbn"].value;
+            var auth = this.elements["author"].value;
+			var init = this.elements["init"].value;
+			var edcode = +this.elements["edcode"].value;
+			var editor = this.elements["editor"].value;
+			var name = this.elements["name"].value;
+			var num = +this.elements["num"].value;
+           	if (num > -1) {
+				if (id == 0) 
+					CreateBook(isbn, auth, init, edcode, editor, name, num);
+				else
+					EditBook(id, isbn, auth, init, edcode, editor, name, num);
+			}
+        });
+  
+        //click on edit link
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetBook(id);
+        })
+        //click on  remove link
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteBook(id);
+        })
+    </script>
+</body>
+</html>
