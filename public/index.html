@@ -85,10 +85,9 @@ JSON (формат разработать самостоятельно)
     </form>
     <table id = "bookTable" class="table table-condensed table-striped table-bordered">
         <thead><tr><th>Id</th><th>ISBN</th><th>Author</th><th>Initials</th><th>EdCode</th><th>Editor</th><th>Name</th><th>Num</th><th></th></tr></thead>
-        <tbody>
-        </tbody>
+        <tbody id = "t1">     </tbody>
     </table>
-  <!-- isbn, auth, init, edcode, editor, name -->
+	   <!-- isbn, auth, init, edcode, editor, name -->
     <script>
         //get all books
         function GetBooks() {
@@ -102,7 +101,7 @@ JSON (формат разработать самостоятельно)
                         rows += row(book);
                     })
                     $("table tbody").append(rows);
-                 }
+				 }
             });
         }
         //Get one book
@@ -145,6 +144,22 @@ JSON (формат разработать самостоятельно)
                 }
             })
         }
+		function CreateUser(userName, bookId) {
+	  $.ajax({
+                url: "api/users",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    name: userName,
+                    bid: bookId,
+					
+                }),
+                success: function (user) {
+                    alert("user created");
+                    
+                }
+            })
+		}
         //Edit Book
         function EditBook(bookId, bookISBN, bookAuth, bookInit, bookEdcode, bookEditor, bookName, bookNum) {
             $.ajax({
@@ -164,7 +179,7 @@ JSON (формат разработать самостоятельно)
                 success: function (book) {
                     reset();
                     console.log(book);
-                   // $("tr[data-rowid='" + book._id + "']").replaceWith(row(book));
+                    $("tr[data-rowid='" + book._id + "']").replaceWith(row(book));
                 }
             })
         }
@@ -212,7 +227,9 @@ JSON (формат разработать самостоятельно)
 				   "<td>" + book.editor + "</td>" + "<td>" + book.name + "</td>" +
 				   "<td>" + book.num + "</td>" +
                    "<td><a class='editLink' data-id='" + book._id + "'>Edit</a> | " +
-                    "<a class='removeLink' data-id='" + book._id + "'>Remove</a></td></tr>";
+				   "<a class ='grabLink' data-id='" + book._id + "'>Grab</a> | " +
+                   "<a class='returnLink' data-id='" + book._id + "'>Return</a> | " +
+				   "<a class='removeLink' data-id='" + book._id + "'>Remove</a></td></tr>";
         }
         //reset form values
         $("#reset").click(function (e) {
@@ -232,14 +249,87 @@ JSON (формат разработать самостоятельно)
 			var editor = this.elements["editor"].value;
 			var name = this.elements["name"].value;
 			var num = +this.elements["num"].value;
-           	if (num > -1) {
+           	if (num > -1 && name != "") {
 				if (id == 0) 
 					CreateBook(isbn, auth, init, edcode, editor, name, num);
 				else
 					EditBook(id, isbn, auth, init, edcode, editor, name, num);
 			}
         });
-  
+		//grab 1 book
+		function GrabBook(id) {
+		    $.ajax({
+                url: "/api/books/"+id,
+                type: "GET",
+                contentType: "application/json",
+                success: function (book) {
+            var isbn = book.isbn;
+			var	auth = book.auth;
+			var	init = book.init;
+			var	edcode = book.edcode;
+			var	editor = book.editor;
+			var	name = book.name;
+			var	num = book.num;
+				if (num > 0) {
+               	EditBook(id, isbn, auth, init, edcode, editor, name, num-1);
+				name = prompt("Name", "");
+				CreateUser(name,id);		
+					}
+					
+				}
+				 	
+            });
+			}
+	
+		function deleteUser(userName) {
+		alert(userName);
+		$.ajax({
+                url: "api/users",
+                contentType: "application/json",
+                method: "DELETE",
+				data: JSON.stringify({
+				name: userName,
+				bid : "nbv"
+				}),
+                success: function (user) {
+                    console.log(user);
+                 }
+            })
+		}
+		//return 1 book	
+		function returnBook(id) {
+		  $.ajax({
+                url: "/api/books/"+id,
+                type: "GET",
+                contentType: "application/json",
+                success: function (book) {
+                var isbn = book.isbn;
+				var	auth = book.auth;
+				var	init = book.init;
+				var	edcode = book.edcode;
+				var	editor = book.editor;
+				var	name = book.name;
+				var	num = book.num;
+				EditBook(id, isbn, auth, init, edcode, editor, name, num+1);
+				var userName = prompt("Type User Name", "");
+				
+				deleteUser(userName);
+                }
+            });
+		}
+		 //click on grab link
+        $("body").on("click", ".grabLink", function () {
+            var name;
+			var id = $(this).data("id");
+			GrabBook(id);		
+        })
+		//click on return link
+        $("body").on("click", ".returnLink", function () {
+            var name;
+			var id = $(this).data("id");
+			alert(id);
+			returnBook(id);		
+        })
         //click on edit link
         $("body").on("click", ".editLink", function () {
             var id = $(this).data("id");

@@ -30,6 +30,28 @@ app.get("/api/books/:id", function(req, res){
         });
     });
 });
+
+
+app.post("/api/users", jsonParser, function (req, res) {
+     
+    if(!req.body) return res.sendStatus(400);
+     
+	var userName = req.body.name;
+	var bookId = req.body.bid;
+		
+    var user = {name : userName, bid : bookId};
+     
+    mongoClient.connect("mongodb://localhost:27017/users", function(err, db){
+        db.collection("users").insertOne(user, function(err, result){
+             
+            if(err) return res.status(400).send();
+             
+            res.send(user);
+            db.close();
+        });
+    });
+});
+  
  
 app.post("/api/books", jsonParser, function (req, res) {
      
@@ -66,6 +88,21 @@ app.delete("/api/books/:id", function(req, res){
              
             var book = result.value;
             res.send(book);
+            db.close();
+        });
+    });
+});
+app.delete("/api/users", jsonParser, function(req, res){
+      
+    var userName = req.body.name;
+	console.log(userName);
+    mongoClient.connect("mongodb://localhost:27017/users", function(err, db){
+        db.collection("users").findOneAndDelete({name: userName}, function(err, result){
+             
+            if(err) return res.status(400).send();
+             
+            var user = result.value;
+            res.send(user);
             db.close();
         });
     });
